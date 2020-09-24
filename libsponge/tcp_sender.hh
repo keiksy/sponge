@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <queue>
+#include <unordered_set>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -15,6 +16,13 @@
 //! segments, keeps track of which segments are still in-flight,
 //! maintains the Retransmission Timer, and retransmits in-flight
 //! segments if the retransmission timer expires.
+struct OutTCPSegmemt {
+    size_t time_stamp;
+    TCPSegment segment;
+
+    OutTCPSegmemt(size_t t, TCPSegment s): time_stamp(t), segment(s) {}
+};
+
 class TCPSender {
   private:
     //! our initial sequence number, the number for our SYN.
@@ -24,7 +32,7 @@ class TCPSender {
     std::queue<TCPSegment> _segments_out{};
 
     //! retransmission timer for the connection
-    unsigned int _initial_retransmission_timeout;
+    unsigned int _init_retx_timeout;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
@@ -32,6 +40,17 @@ class TCPSender {
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
 
+    size_t _cur_window_size{1};
+
+    std::deque<OutTCPSegmemt> _segments_fly;
+
+    size_t _retx_timeout;
+
+    size_t _consec_retx_count{0};
+
+    size_t _curr_timestamp{0};
+
+    bool _eof{false};
   public:
     //! Initialize a TCPSender
     TCPSender(const size_t capacity = TCPConfig::DEFAULT_CAPACITY,
