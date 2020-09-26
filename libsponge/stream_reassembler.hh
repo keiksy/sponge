@@ -15,6 +15,7 @@ using namespace std;
 class StreamReassembler {
   private:
     size_t _wait_idx;
+    //(the abs seq number of last byte) + 1
     size_t _eof_idx;
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
