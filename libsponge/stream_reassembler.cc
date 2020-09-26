@@ -12,16 +12,23 @@
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity) :
-_wait_idx(0), _eof_idx(INT64_MAX), _output(capacity), _capacity(capacity), _last_data(), _receive_bytes(0), _wait_map(){}
+_wait_idx(0), _eof_idx(INT64_MAX), _output(capacity), _capacity(capacity), _wait_vec(capacity) , _used_seq(){}
 
-// 两个字符串的最长相同前缀的长度
-size_t prefix_idx (const string &a, const string &b) {
-    size_t loop_time = min(a.size(), b.size()), i = 0;
-    while (i < loop_time) {
-        if (a[i]==b[i]) i++;
-        else break;
+std::size_t StreamReassembler::copy_to_vec(const string &data, size_t begin_idx) {
+    size_t dup = 0;
+    for (size_t i = 0; i < data.size(); i++) {
+        _used_seq.insert(begin_idx+i);
+        if (data[i] == _wait_vec[begin_idx+i]) dup++;
+        else _wait_vec[begin_idx+i] = data[i];
     }
-    return i;
+    return data.size() - dup;
+}
+
+string StreamReassembler::string_of_range(std::size_t begin, std::size_t end) {
+    string ans;
+    for (size_t i = begin; i < end && _used_seq.count(i); i++)
+        ans += _wait_vec[i];
+    return ans;
 }
 
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
@@ -29,48 +36,30 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     string to_write = data;
     if (!data.empty()) {
         if (_wait_idx > index) {
-            if (_wait_idx-_last_data.size()==index && data.find(_last_data)==0 &&
-                    data.size() > _last_data.size()) {
-                to_write = data.substr(_last_data.size());
-                _wait_idx -= _last_data.size();
-                _wait_map[_wait_idx] = data;
+            string last = string_of_range(index, _wait_idx);
+            if (data.find(last)==0 && data.size()>last.size()) {
+                to_write = data.substr(last.size());
+                _unassem_bytes += copy_to_vec(to_write, _wait_idx);
                 _receive_bytes += to_write.size();
             } else return;
         } else {
-            for (auto i = _wait_map.begin(); i!=_wait_map.end();) {
-                size_t datae = index + to_write.size(), cure = i->second.size() + i->first;
-                if (index == i->first && i->second.find(to_write)==0) {to_write = i->second; break;}
-                if (i->first <= index && cure >= datae && i->second.find(to_write) != string::npos) return;
-                if (i->first >= index && cure <= datae && to_write.find(i->second) != string::npos) i = _wait_map.erase(i);
-                else i++;
-            }
-            _wait_map[index] = to_write;
+            _unassem_bytes += copy_to_vec(to_write, index);
             _receive_bytes += to_write.size();
             if (_wait_idx < index) return;
         }
         while (_wait_idx < _eof_idx) {
-            _output.write(to_write);
-            _last_data = _wait_map[_wait_idx];
-            _wait_map.erase(_wait_idx);
-            _wait_idx += to_write.size();
-            if (_wait_map.count(_wait_idx)) to_write = _wait_map[_wait_idx];
-            else break;
+            size_t write_num = _output.write(to_write);
+            _wait_idx += write_num;
+            _unassem_bytes -= write_num;
+            if (write_num==0 || !_used_seq.count(_wait_idx)) break;
+            to_write = string_of_range(_wait_idx, _capacity);
         }
     }
     if (_wait_idx >= _eof_idx) _output.end_input();
 }
 
-bool StreamReassembler::in_map(size_t index) const {
-    auto got = _wait_map.find(index);
-    return !(got == _wait_map.end());
-}
-
 size_t StreamReassembler::unassembled_bytes() const {
-    size_t size = 0;
-    for (const auto& i : _wait_map) {
-        size += i.second.size();
-    }
-    return size;
+    return _unassem_bytes;
 }
 
 bool StreamReassembler::empty() const {

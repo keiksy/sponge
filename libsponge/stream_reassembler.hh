@@ -5,8 +5,9 @@
 
 #include <iostream>
 #include <cstdint>
-#include <unordered_map>
+#include <unordered_set>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -19,14 +20,15 @@ class StreamReassembler {
     size_t _eof_idx;
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
-    string _last_data;
-    // _receive_bytes统计StreamReassembler收到的字节总数，和byte_stream中的num_written变量不同，
-    // 这个变量不仅仅统计了写入缓冲区的字节数，也统计了保存在_wait_map中的字节数，设置这个变量是为了告知发送方
-    // 发送方所发送的字符串是否被收到（不管这个字符串是被写入了缓冲区还是被保存在了_wait_map中）
-    size_t _receive_bytes;
-    unordered_map<size_t, string> _wait_map;
+    size_t _receive_bytes{0};
+    std::size_t _unassem_bytes{0};
+    vector<char> _wait_vec;
 
-    bool in_map(size_t index) const;
+    std::size_t copy_to_vec(const string &data, std::size_t begin_idx);
+
+    string string_of_range(std::size_t begin, std::size_t end);
+
+    unordered_set<size_t> _used_seq;
 
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
