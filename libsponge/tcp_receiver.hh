@@ -25,6 +25,10 @@ class TCPReceiver {
     uint64_t _lower_edge;
     uint64_t _ckp;
 
+    inline std::size_t lower_edge() const {
+        return _reassembler.receive_bytes_count() +_fin_valid+_isn_valid;
+    }
+
   public:
     //! \brief Construct a TCP receiver
     //!

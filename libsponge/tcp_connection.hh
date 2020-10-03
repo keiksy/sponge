@@ -24,7 +24,14 @@ class TCPConnection {
 
     size_t _curr_timestamp{0};
 
-  public:
+    bool _connected{false};
+
+    bool _fin_sent{false};
+
+    std::size_t _last_receive_segment_time{0};
+
+    void fill_outbound_queue();
+public:
     //! \name "Input" interface for the writer
     //!@{
 
@@ -32,13 +39,15 @@ class TCPConnection {
     void connect();
 
     //! \brief Write data to the outbound byte stream, and send it over TCP if possible
-    //! \returns the number of bytes from `data` that were actually written.
+    //! \returns the number of bytes from `data` that were actually written
+    // 应用程序写给socket，准备发送
     size_t write(const std::string &data);
 
     //! \returns the number of `bytes` that can be written right now.
     size_t remaining_outbound_capacity() const;
 
     //! \brief Shut down the outbound byte stream (still allows reading incoming data)
+    // 不让应用程序往里面写了
     void end_input_stream();
     //!@}
 
