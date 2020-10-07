@@ -51,6 +51,10 @@ class TCPSender {
     size_t _curr_timestamp{0};
 
     bool _eof{false};
+
+    bool _fin_sent{false};
+
+    bool _syn_sent{false};
   public:
     //! Initialize a TCPSender
     TCPSender(const size_t capacity = TCPConfig::DEFAULT_CAPACITY,
@@ -106,6 +110,9 @@ class TCPSender {
     //! \brief relative seqno for the next byte to be sent
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
+    bool fin_sent() { return _fin_sent; }
+
+    bool syn_sent() { return _syn_sent; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH

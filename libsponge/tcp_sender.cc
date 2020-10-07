@@ -36,6 +36,7 @@ void TCPSender::fill_window() {
     header.seqno = wrap(_next_seqno, _isn);
     if (_cur_window_size>0 && _next_seqno==0) {
         header.syn = true;
+        _syn_sent = true;
         send_size++;
     }
     size_t payload_size = min(min(TCPConfig::MAX_PAYLOAD_SIZE-send_size, _stream.buffer_size()), _cur_window_size-send_size);
@@ -44,6 +45,7 @@ void TCPSender::fill_window() {
     send_size += payload_size;
     if (!_eof && _stream.eof() && _cur_window_size > send_size) {
         header.fin = true;
+        _fin_sent = true;
         send_size++;
         _eof = true;
     }
@@ -76,7 +78,7 @@ bool TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
     _curr_timestamp += ms_since_last_tick;
-    if (_segments_fly.front().time_stamp + _retx_timeout <= _curr_timestamp) {
+    if (!_segments_fly.empty() && _segments_fly.front().time_stamp + _retx_timeout <= _curr_timestamp) {
         _segments_out.push(_segments_fly.front().segment);
         _segments_fly.front().time_stamp = _curr_timestamp;
         _retx_timeout *= 2;

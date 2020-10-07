@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
-#include <list>
 #include <string>
 #include <utility>
 
@@ -16,11 +15,11 @@
 class ByteStream {
   private:
     // Your code here -- add private members as necessary.
-    size_t capacity;
-    std::deque<char> buffer{};
-    size_t num_written{0};
-    size_t num_popped{0};
-    bool isOpen{true};
+    size_t _capacity;
+    std::deque<char> _buffer{};
+    size_t _num_written{0};
+    size_t _num_popped{0};
+    bool _is_open{true};
     bool _error{};  //!< Flag indicating that the stream suffered an error.
 
   public:

@@ -15,7 +15,6 @@ class TCPConnection {
 
     //! outbound queue of segments that the TCPConnection wants sent
     std::queue<TCPSegment> _segments_out{};
-    std::size_t _used_space{0};
 
     //! Should the TCPConnection stay active (and keep ACKing)
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
@@ -24,11 +23,11 @@ class TCPConnection {
 
     size_t _curr_timestamp{0};
 
-    bool _connected{false};
-
-    bool _fin_sent{false};
+    bool _connected{true};
 
     std::size_t _last_receive_segment_time{0};
+
+    WrappingInt32 _fin_seqno{INT32_MAX};
 
     void fill_outbound_queue();
 public:
